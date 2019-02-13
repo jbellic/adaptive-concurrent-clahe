@@ -9,6 +9,7 @@ By utilizing, the amount of retrieved image features could be increased dramatic
 ### Usage example with Clip Limit = 1
 
 ![AC-CLAHE](https://raw.githubusercontent.com/jbellic/adaptive-concurrent-clahe/master/ac-clahe.jpg)
+> Sample image from Oxford 5K collection
 
 ### Adaptive Check
 
