@@ -13,7 +13,7 @@ By utilizing, the amount of retrieved image features could be increased dramatic
 
 ### Adaptive Check
 
-Allows the user to check if image candidate is suitable for CLAHE application by analysing image pixels. If image contains x percent amount of too dark pixels, where darkness is defined by a custom threshold value, then CLAHE is applied. This feature is optional and mostly useful for retrieval applications.  
+Allows the user to check if image candidate is suitable for CLAHE application by analysing image pixels. If image contains x percent amount of too dark pixels, where darkness is defined by a custom threshold value, then CLAHE is applied. This feature is optional and mostly useful for retrieval applications where it must be distinguished, if applying CLAHE on target image may give better results.
 
 ![AC-CLAHE](https://raw.githubusercontent.com/jbellic/adaptive-concurrent-clahe/master/rootsift-test.jpg)
 > More features gives positive effect on image feature extraction and matching
