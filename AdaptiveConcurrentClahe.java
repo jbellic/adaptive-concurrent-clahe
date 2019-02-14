@@ -50,9 +50,8 @@ public class AdaptiveConcurrentClahe {
     public BufferedImage processAdaptive(BufferedImage bufferedImage) {
         if (suitableForClahe(bufferedImage)) {
             return applyOnLuminance(bufferedImage);
-        } else {
-            return bufferedImage;
         }
+        return bufferedImage;
     }
 
     /**
