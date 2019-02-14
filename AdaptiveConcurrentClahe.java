@@ -10,9 +10,9 @@ import java.util.stream.IntStream;
 /**
  * Very fast Contrast Limited Adaptive Histogram Equalization implementation based on OpenCV
  * with option for adaptive check if image to process is suitable for CLAHE.
- * Implementation is threadsafe, fully multithreaded and much faster than the C++ port / original implementation.
+ * Implementation is threadsafe, fully multithreaded and much faster than the original C++ port.
  * <p>
- * Early benchmarks with 4000x6000 pixel images and default settings shows ~2.66x speed increase.
+ * Benchmarks with 4000x6000 pixel images and default settings shows up to 2.66x speed increase.
  *
  * @author Serdar Bellikli
  */
@@ -30,7 +30,7 @@ public class AdaptiveConcurrentClahe {
     private static final int CLAHE_TILES_X = 8;
     private static final int CLAHE_TILES_Y = 8;
     private static final boolean CLAHE_COLOR_OUTPUT = true;
-
+    
     /**
      * Process image without adaptive suitability check.
      *
@@ -69,11 +69,10 @@ public class AdaptiveConcurrentClahe {
         for (int i = 0; i < bufferedImage.getHeight(); i++) {
             for (int j = 0; j < bufferedImage.getWidth(); j++) {
                 int pixel = bufferedImage.getRGB(j, i);
-
                 int r = red(pixel);
                 int g = green(pixel);
                 int b = blue(pixel);
-
+                
                 int brightness = (int) (0.2126F * r + 0.7152F * g + 0.0722F * b);
                 brightnessHistogram[brightness]++;
             }
@@ -205,29 +204,38 @@ public class AdaptiveConcurrentClahe {
     private void calculateInterpolationBody(int y, Mat src, Mat dst, Mat lut, Size tileSize) {
         int lutStep = (int) lut.step1();
         int lutBreak = CLAHE_TILES_X * lutStep;
-
         float tyf = (y / (float) tileSize.height) - 0.5f;
         int ty1 = (int) Math.floor(tyf);
         int ty2 = ty1 + 1;
         float ya = tyf - ty1;
+
+        // keep largest
         if (ty1 < 0) {
             ty1 = 0;
         }
+
+        // keep smallest
         if (ty2 > CLAHE_TILES_Y - 1) {
             ty2 = CLAHE_TILES_Y - 1;
         }
-        for (int x = 0; x < src.cols(); x++) {
 
+        for (int x = 0; x < src.cols(); x++) {
             float txf = (x / (float) tileSize.width) - 0.5f;
             int tx1 = (int) Math.floor(txf);
             int tx2 = tx1 + 1;
+
+            // keep largest
             float xa = txf - tx1;
             if (tx1 < 0) {
                 tx1 = 0;
             }
+
+            // keep smallest
             if (tx2 > CLAHE_TILES_X - 1) {
                 tx2 = CLAHE_TILES_X - 1;
             }
+
+            // original pixel value
             double[] ptr = src.get(y, x);
             int srcVal = (int) ptr[0];
 
@@ -278,12 +286,15 @@ public class AdaptiveConcurrentClahe {
         int ty = k / CLAHE_TILES_X;
         int tx = k % CLAHE_TILES_X;
 
+        // retrieve tile subMatrix
         Rect tileROI = new Rect();
         tileROI.x = (int) (tx * tileSize.width);
         tileROI.y = (int) (ty * tileSize.height);
         tileROI.width = (int) tileSize.width;
         tileROI.height = (int) tileSize.height;
         Mat tile = src.submat(tileROI);
+
+        // calculate histogram
         int[] tileHist = new int[CLAHE_BUFFER_SIZE];
         int height = tileROI.height;
 
@@ -296,6 +307,7 @@ public class AdaptiveConcurrentClahe {
         }
         tile.release();
 
+        // clip histogram
         if (clipLimit > 0) {
             int clipped = 0;
             for (int i = 0; i < CLAHE_BUFFER_SIZE; ++i) {
@@ -304,6 +316,8 @@ public class AdaptiveConcurrentClahe {
                     tileHist[i] = clipLimit;
                 }
             }
+
+            // redistribute clipped pixels
             int redistBatch = clipped / CLAHE_BUFFER_SIZE;
             int residual = clipped - redistBatch * CLAHE_BUFFER_SIZE;
             for (int i = 0; i < CLAHE_BUFFER_SIZE; ++i) {
@@ -313,14 +327,14 @@ public class AdaptiveConcurrentClahe {
                 tileHist[i]++;
             }
         }
+
+        // calculate lut
         int sum = 0;
         for (int i = 0; i < CLAHE_BUFFER_SIZE; ++i) {
             sum += tileHist[i];
 
             int x = Math.round(sum * lutScale);
             lut.put(k, i, x > CLAHE_BUFFER_SIZE - 1 ? CLAHE_BUFFER_SIZE - 1 : (x < 0 ? 0 : x));
-            lut.put(k, i, x > CLAHE_BUFFER_SIZE - 1 ? CLAHE_BUFFER_SIZE - 1 : (x < 0 ? 0 : x));
         }
     }
 }
-
