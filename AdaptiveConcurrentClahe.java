@@ -25,12 +25,12 @@ public class AdaptiveConcurrentClahe {
 
     // ** Clahe Settings **
 
-    private static final int CLAHE_CLIP_LIMIT = 1;
+    private static final int CLAHE_CLIP_LIMIT = 5;
     private static final int CLAHE_BUFFER_SIZE = 256;
     private static final int CLAHE_TILES_X = 8;
     private static final int CLAHE_TILES_Y = 8;
-    private static final boolean CLAHE_COLOR_OUTPUT = true;
-    
+    private static final boolean CLAHE_COLOR_OUTPUT = false;
+
     /**
      * Process image without adaptive suitability check.
      *
@@ -72,7 +72,7 @@ public class AdaptiveConcurrentClahe {
                 int r = red(pixel);
                 int g = green(pixel);
                 int b = blue(pixel);
-                
+
                 int brightness = (int) (0.2126F * r + 0.7152F * g + 0.0722F * b);
                 brightnessHistogram[brightness]++;
             }
@@ -176,6 +176,7 @@ public class AdaptiveConcurrentClahe {
             Imgproc.copyMakeBorder(src, srcExt, 0, CLAHE_TILES_Y - (src.rows() % CLAHE_TILES_Y), 0, CLAHE_TILES_X - (src.cols() % CLAHE_TILES_X), Imgproc.BORDER_REFLECT_101);
             tileSize = new Size((double) srcExt.cols() / CLAHE_TILES_X, (double) srcExt.rows() / CLAHE_TILES_Y);
             srcForLut = srcExt;
+            srcExt.release();
         }
 
         double tileSizeTotal = tileSize.area();
@@ -195,15 +196,15 @@ public class AdaptiveConcurrentClahe {
      * Calculates Intepolation Body concurrently for CLAHE.
      */
     private void calculateInterpolationBodyParallel(Range range, Mat src, Mat dst, Mat lut, Size tileSize) {
-        IntStream.range(range.start, range.end).parallel().forEach(i -> calculateInterpolationBody(i, src, dst, lut, tileSize));
+        int lutStep = (int) lut.step1();
+        int lutBreak = CLAHE_TILES_X * lutStep;
+        IntStream.range(range.start, range.end).parallel().forEach(i -> calculateInterpolationBody(i, lutStep, lutBreak, src, dst, lut, tileSize));
     }
 
     /**
      * Intepolation Body calculation algorithm.
      */
-    private void calculateInterpolationBody(int y, Mat src, Mat dst, Mat lut, Size tileSize) {
-        int lutStep = (int) lut.step1();
-        int lutBreak = CLAHE_TILES_X * lutStep;
+    private void calculateInterpolationBody(int y, int lutStep, int lutBreak, Mat src, Mat dst, Mat lut, Size tileSize) {
         float tyf = (y / (float) tileSize.height) - 0.5f;
         int ty1 = (int) Math.floor(tyf);
         int ty2 = ty1 + 1;
@@ -220,6 +221,7 @@ public class AdaptiveConcurrentClahe {
         }
 
         for (int x = 0; x < src.cols(); x++) {
+
             float txf = (x / (float) tileSize.width) - 0.5f;
             int tx1 = (int) Math.floor(txf);
             int tx2 = tx1 + 1;
@@ -320,6 +322,7 @@ public class AdaptiveConcurrentClahe {
             // redistribute clipped pixels
             int redistBatch = clipped / CLAHE_BUFFER_SIZE;
             int residual = clipped - redistBatch * CLAHE_BUFFER_SIZE;
+
             for (int i = 0; i < CLAHE_BUFFER_SIZE; ++i) {
                 tileHist[i] += redistBatch;
             }
