@@ -25,11 +25,19 @@ public class AdaptiveConcurrentClahe {
 
     // ** Clahe Settings **
 
-    private static final int CLAHE_CLIP_LIMIT = 5;
+    private static final int CLAHE_CLIP_LIMIT = 1;
     private static final int CLAHE_BUFFER_SIZE = 256;
     private static final int CLAHE_TILES_X = 8;
     private static final int CLAHE_TILES_Y = 8;
     private static final boolean CLAHE_COLOR_OUTPUT = false;
+
+    // ** precomputed tiles lookup table with tileSize 8 for faster lutBody processing
+
+    private int[] tyEightX = {5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 2, 1, 4, 1, 6, 1, 6, 7, 2, 7, 2, 3, 6, 1, 4, 1, 1, 3, 6,
+            3, 6, 3, 2, 7, 2, 7, 2, 7, 2, 7, 2, 3, 6, 0, 3, 1, 0, 4, 0, 1, 3, 3, 0, 4, 6, 4, 6, 4, 0, 0, 4, 0, 0, 4};
+
+    private int[] txEightY = {2, 3, 4, 0, 4, 5, 6, 6, 7, 2, 3, 1, 2, 3, 4, 5, 6, 7, 5, 4, 5, 0, 1, 4, 5, 2, 3, 7, 0,
+            1, 4, 5, 6, 7, 6, 7, 6, 7, 2, 3, 0, 1, 2, 3, 0, 1, 0, 1, 0, 1, 4, 5, 6, 2, 3, 2, 7, 4, 5, 0, 1, 6, 7, 3};
 
     /**
      * Process image without adaptive suitability check.
@@ -284,8 +292,8 @@ public class AdaptiveConcurrentClahe {
      * Lut Body calculation algorithm.
      */
     private void calcLutBody(int k, Mat src, Mat lut, Size tileSize, int clipLimit, float lutScale) {
-        int ty = k / CLAHE_TILES_X;
-        int tx = k % CLAHE_TILES_X;
+        int ty = tyEightX[k];
+        int tx = txEightY[k];
 
         // retrieve tile subMatrix
         Rect tileROI = new Rect();
