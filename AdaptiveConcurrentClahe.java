@@ -14,7 +14,7 @@ import java.util.stream.IntStream;
  * <p>
  * Benchmarks with 4000x6000 pixel images and default settings shows up to 2.66x speed increase.
  *
- * @author Serdar Bellikli
+ * @author JBellic Softworks
  */
 public class AdaptiveConcurrentClahe {
 
